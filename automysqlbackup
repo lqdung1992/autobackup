@@ -107,6 +107,17 @@ isEmpty() {
   if [[ ${!1} ]]; then return 1; else return 0; fi
 }
 
+killAll() {
+    #Find all lock query and kill them
+    LockSessionIDs=`$H_MySQLCommand -sN -e "show processlist" | grep "SELECT SLEEP(86400)" | awk '{print $1}'`
+    for i in $LockSessionIDs
+        {
+            $H_MySQLCommand -e "kill $i" 2> /dev/null
+            echo "$(date '+%F %T') -- INFO : The Special Lock Query (ID: $i) has been killed. " >> $FullBackupScriptsLogFile
+
+        }
+}
+
 # @info:	Called when one of the signals EXIT, SIGHUP, SIGINT, SIGQUIT or SIGTERM is emitted.
 #			It removes the IO redirection, mails any log file information and cleans up any temporary files.
 # @args:	(none)
@@ -189,6 +200,8 @@ mail_cleanup () {
     [[ -e "$log_file" ]] && rm -f "$log_file"
     [[ -e "$log_errfile" ]] && rm -f "$log_errfile"
   fi
+  # clear all PID of sql
+  killAll
 }
 
 # @params:	#month	#year

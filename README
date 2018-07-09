@@ -41,7 +41,25 @@ To install it manually (the hard way).
 5. Edit the /etc/automysqlbackup/myserver.conf file to customise your settings.
 6. See usage section.
 
+To install incremental backup
+1. cp mysql-incremental /etc/automysqlbackup/
+2. chmod 755 /etc/automysqlbackup/mysql-incremental
+3. cp mysql-backup-post /etc/automysqlbackup/
+4. chmod 755 /etc/automysqlbackup/mysql-backup-post
+5. cp mysql-backup-pre /etc/automysqlbackup/
+6. chmod 755 /etc/automysqlbackup/mysql-backup-pre
 
+Config:
+```
+CONFIG_mysql_dump_username='Mysql user name. It must has privileges to get Lock'
+CONFIG_mysql_dump_password='Password'
+CONFIG_backup_dir='The backup directory you want to store full and incremental backup'
+CONFIG_db_names=('databaseName1' 'databaseName2' )
+CONFIG_db_month_names=('databaseName1' 'databaseName2' )
+CONFIG_mysql_dump_master_data=2
+CONFIG_prebackup="/etc/automysqlbackup/mysql-backup-pre"
+CONFIG_postbackup="/etc/automysqlbackup/mysql-backup-post"
+```
 
 .. USAGE
 -------------------------
@@ -206,3 +224,52 @@ or
 
 NOTE: Make sure you use "<" and not ">" in the above command because you are piping the file.sql to mysql and not the other way around.
 
+## Update my.cnf:
+--------------------
+Edit the MySQL configuration file:
+
+nano /etc/mysql/my.cnf
+
+1- BinLog Format
+
+Due to some limitation on STATEMENT format, my recommendation is to set ROW based format. For more information please see the 'troubleshoot' section in this howto. You can check the type of binary log format by executing "select @@binlog_format;" query. To modify logbin format , you must add binlog_format = ROW to mysql.conf or my.cnf .
+
+2- binlog_do_db
+
+You must specify the databases that you intend to have the related changes in the binary log. Please note if you do not specify any database, any change on any database will be logged into binary log. In this case, if you chose STATEMENT format, maybe you have some trouble when restoring from incremental backup and binlog files. You can add databases to this option:
+
+binlog_do_db = DATABASENAME1
+binlog_do_db = DATABASENAME2
+
+3- expire_logs_days
+
+To have binary log files for a longer time, you can increase this parameter to a higher value. My recommendation is 60 days. So you must add or change it to "expire_logs_days = 60".
+
+4- log-bin
+
+The directory where the binary logs will be stored. In old MySQL versions, mysql-incremenetal might not be able to find the correct path. So if you get an error about this after executing mysql-incremental, you must update mysql-incremental script and set the binary log path.
+
+5- log_slave_updates
+
+If you are setting up mysql-incremental backup on a slave server, you must enable this option. Normally, a slave does not log updates to its own binary log as they were received from a master server. This option tells the slave to log the updates performed by its SQL threads to its own binary log. http://dev.mysql.com/doc/refman/5.1/en/replication-options-slave.html#option_mysqld_log-slave-updates
+
+## Run automysqlbackup
+Run automysqlbackup manually to have at least one full backup from your specified databases.
+
+automysqlbackup
+
+After executing the command successfully, check the /[BackupDirInAutomysqlbackup]/status/backup_info file for the newly added information about the daily backup. For error details, check /var/log/Backup_Post_Pre_log . The backup file will be stored in the directory /[BackupDirInAutomysqlbackup]/daily/[DatabaseName]/ .
+
+## Run mysql-incremental
+Run mysql-incremental manually now to have at least one hourly backup.
+
+mysql-incremental
+
+In case of an error, the details are logged in the file "/var/log/Backup_Incremental_Log" . The incremental backup files will be stored in the directory /[BackupDirInAutomysqlbackup]/IncrementalBackup/ .
+
+## crontab
+crontab -e
+```
+5 00 * * * root /usr/local/bin/automysqlbackup
+25 *  * * * root  /etc/automysqlbackup/mysql-incremental
+```

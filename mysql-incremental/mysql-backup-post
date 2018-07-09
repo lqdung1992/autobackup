@@ -14,14 +14,14 @@ BinlogPosInDumpFile=`zcat $cfname | head -n 30 | grep MASTER_LOG_FILE= | cut -d 
 BinlogInfoInDumpFile="$BinlogNameInDumpFile,$BinlogPosInDumpFile"
 
 
+# move to killAll() in automysqlbackup
 #Find all lock query and kill them
-LockSessionIDs=`$H_MySQLCommand -sN -e "show processlist" | grep "SELECT SLEEP(86400)" | awk '{print $1}'`
-for i in $LockSessionIDs
-	{
-		$H_MySQLCommand -e "kill $i" 2> /dev/null 
-		echo "$(date '+%F %T') -- INFO : The Special Lock Query (ID: $i) has been killed. " >> $FullBackupScriptsLogFile
-
-	}
+#LockSessionIDs=`$H_MySQLCommand -sN -e "show processlist" | grep "SELECT SLEEP(86400)" | awk '{print $1}'`
+#for i in $LockSessionIDs
+#	{
+#		$H_MySQLCommand -e "kill $i" 2> /dev/null
+#		echo "$(date '+%F %T') -- INFO : The Special Lock Query (ID: $i) has been killed. " >> $FullBackupScriptsLogFile
+#	}
 
 
 #Compare binlog info before starting backup procaess with binlog info included in dump file. Both of them must be the same and if they are not equal, the Lock was not acquired suscessfully and during backup process, the binlog info has been changed.
