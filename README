@@ -273,3 +273,6 @@ crontab -e
 5 00 * * * root /usr/local/bin/automysqlbackup
 25 *  * * * root  /etc/automysqlbackup/mysql-incremental
 ```
+
+## REF:
+https://www.howtoforge.com/tutorial/mysql-incremental-backup-point-in-time-recovery/#run-automysqlbackup
